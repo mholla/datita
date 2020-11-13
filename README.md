@@ -1,7 +1,11 @@
 # datita
 visualization of baby data from Hatch Baby app
 
-This code is intended to provide beautiful and informative visualization of your baby's patterns and changes in feeding, sleep, diapers, and growth.  I created it because I found the default visualizations to be unhelpful.  Specifically, I had a few questions: 
+This code is intended to provide beautiful and informative visualization of your baby's patterns and changes in feeding, sleep, diapers, and growth.  
+
+PLEASE NOTE: Most pediatricians will probably caution you against tracking this much data.  If you will obsess over the smallest variation, or the smallest imperfection in your data entry, then it might hurt you more than it could help you.  Please observe your feelings carefully before and during your tracking, and stop if it is no longer helpful to you!
+
+I created this because I love data and found the default visualizations to be unhelpful.  Specifically, I had a few questions: 
 * SLEEP 
   * how long is my baby sleeping each day? (And here I find it important to calculate this per 24 hours, not considering any sleep that _starts_ before midnight to be part of that day) -> sleep_total.png
   * is my baby following a sleep schedule?  How consistent is it?  Does it differ between day and nighttime?  -> sleep_schedule.png
