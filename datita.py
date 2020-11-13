@@ -56,10 +56,10 @@ def define_months():
     return n_months, month_dates
 
 
-def read_percentiles(percentile_type, n_months):
+def read_percentiles(percentile_type, gender, n_months):
     # read CDC percentile tables 
 
-    f = open('percentiles_{type}.txt'.format(type=percentile_type), 'r')
+    f = open('percentiles_{type}_{gender}.txt'.format(type=percentile_type, gender=gender), 'r')
     lines = f.readlines()
 
     percentiles = numpy.zeros((9, n_months))
@@ -592,9 +592,9 @@ def plot_diapers(data_diapers):
     plt.savefig('diapers_number.png')
 
 
-def plot_percentiles(measurement, measurement_data, n_months):
+def plot_percentiles(measurement, gender, measurement_data, n_months):
     
-    percentile_data = read_percentiles(measurement, n_months)
+    percentile_data = read_percentiles(measurement, gender, n_months)
     percentiles = [2, 5, 10, 25, 50, 75, 90, 95, 98]
     percentile_colors = numpy.arange(0.1, 1.0, 0.1)
 
@@ -614,7 +614,7 @@ def plot_percentiles(measurement, measurement_data, n_months):
 
     if measurement == 'weight':
         plt.title('Weight')
-        plt.plot([birthdate, last_date], [measurement_data[0][1], measurement_data[0][1] + 1.5/16.*n_days], 'k--', label='1.5oz per day')
+        plt.plot([birthdate, last_date], [measurement_data[0][1], measurement_data[0][1] + 1.0/16.*n_days], 'k--', label='1oz per day')
         size = 1
         plt.gca().set_ylim(bottom=0)
         plt.ylabel('pounds')
@@ -650,11 +650,11 @@ if __name__ == '__main__':
 
     Hatch_filename = 'data_Hatch.txt'
     head_filename = 'data_head.txt'
+    gender = 'girl'
     birthdate = datetime(2020, 8, 9).date()
     colormap = plt.get_cmap('viridis').reversed()  
     morning = 8
     night = 20
-
 
     [lines_sleeps, lines_feedings, lines_diapers, lines_weights, lines_lengths] = read_data(Hatch_filename)
     
@@ -684,8 +684,8 @@ if __name__ == '__main__':
     plot_sleep_24(data_sleep_24)
     plot_feeding(data_feeding)
     plot_diapers(data_diapers)
-    plot_percentiles('weight', data_weight, n_months)
-    plot_percentiles('length', data_length, n_months)
-    plot_percentiles('head', data_head, n_months)
+    plot_percentiles('weight', gender, data_weight, n_months)
+    plot_percentiles('length', gender, data_length, n_months)
+    plot_percentiles('head', gender, data_head, n_months)
 
     plt.show()
