@@ -62,19 +62,44 @@ def read_percentiles(percentile_type, gender, n_months):
     f = open('percentiles_{type}_{gender}.txt'.format(type=percentile_type, gender=gender), 'r')
     lines = f.readlines()
 
-    percentiles = numpy.zeros((9, n_months))
 
-    for i in range(n_months):
-        month_percentiles = lines[i].split()
-        for j in range(9):
-            if percentile_type == 'weight':
-                percentiles[j][i] = float(month_percentiles[j])*2.20462
-            elif percentile_type == 'length':
-                percentiles[j][i] = float(month_percentiles[j])*0.393701
-            elif percentile_type == 'head':
-                percentiles[j][i] = float(month_percentiles[j])*0.393701
+    if percentile_type == 'weight-length':
+        all_lengths = numpy.zeros(len(lines))
+        max_length = math.ceil(n_months) + 1
 
-    return percentiles
+        for i in range(len(lines)):
+            percentiles_data = lines[i].split()
+            all_lengths[i] = float(percentiles_data[0])*0.393701
+            if all_lengths[i] < max_length: 
+                j = i
+
+        lengths = numpy.zeros(j)
+        weight_percentiles = numpy.zeros((9, j))
+
+        for i in range(j):
+            percentiles_data = lines[i].split()
+            lengths[i] = all_lengths[i]
+            
+            for j in range(9):
+                weight_percentiles[j][i] = float(percentiles_data[j+1])*2.20462
+
+        return lengths, weight_percentiles
+
+    else:
+
+        percentiles = numpy.zeros((9, n_months))
+
+        for i in range(n_months):
+            month_percentiles = lines[i].split()
+            for j in range(9):
+                if percentile_type == 'weight':
+                    percentiles[j][i] = float(month_percentiles[j])*2.20462
+                elif percentile_type == 'length':
+                    percentiles[j][i] = float(month_percentiles[j])*0.393701
+                elif percentile_type == 'head':
+                    percentiles[j][i] = float(month_percentiles[j])*0.393701
+
+        return percentiles
 
 
 def parse_sleep(lines_sleeps):
@@ -153,7 +178,8 @@ def parse_weights(lines_weights, month_dates):
     # fill in weights on days without
     for i in range(len(data_weight)):
         if data_weight[i] == []:
-            data_weight[i] = [all_dates[i], data_weight[i-1][1]]
+            date = datetime.combine(all_dates[i], time(0, 0))
+            data_weight[i] = [date, data_weight[i-1][1]]
 
     return data_weight
 
@@ -605,6 +631,47 @@ def plot_diapers(data_diapers):
     plt.savefig('diapers_number.png')
 
 
+def plot_percentiles_weight_vs_length(gender, data_weight, data_length, n_months):
+    
+    [lengths, percentile_weight] = read_percentiles('weight-length', gender, n_months)
+    percentiles = [2, 5, 10, 25, 50, 75, 90, 95, 98]
+    percentile_colors = numpy.arange(0.1, 1.0, 0.1)
+
+    plt.figure()
+
+    for i in reversed(range(9)):
+        width = 2
+        if i in [1, 3, 4, 5, 7]:
+            label = '{percentile}%ile'.format(percentile=percentiles[i])
+            linestyle = '-'
+            alpha = 1
+        else:
+            label = None
+            linestyle = '--'
+            alpha = 0.2
+        plt.plot(lengths, percentile_weight[i], color=colormap(percentile_colors[i]), linestyle=linestyle, linewidth=width, label=label, alpha=alpha)
+
+    
+    plt.title('Weight vs. Length')
+    plt.gca().set_xlim(left=18)
+    plt.gca().set_ylim(bottom=4)
+    plt.xlabel('inches')
+    plt.ylabel('pounds')
+
+    j = 0
+    
+    for i in range(len(data_length)):
+        length_date = data_length[i][0]
+    
+        while data_weight[j][0] < length_date:
+            j = j + 1
+        matching_weight = data_weight[j][1]
+        plt.plot(data_length[i][1], data_weight[j][1], 'ko')
+
+    plt.gca().legend(loc='best')
+    plt.savefig('weight-length.png')
+
+
 def plot_percentiles(measurement, gender, measurement_data, n_months):
     
     percentile_data = read_percentiles(measurement, gender, n_months)
@@ -616,7 +683,7 @@ def plot_percentiles(measurement, gender, measurement_data, n_months):
     for i in reversed(range(9)):
         width = 2
         if i in [1, 3, 4, 5, 7]:
-            label = percentiles[i]
+            label = '{percentile}%ile'.format(percentile=percentiles[i])
             linestyle = '-'
             alpha = 1
         else:
@@ -643,7 +710,7 @@ def plot_percentiles(measurement, gender, measurement_data, n_months):
         plt.ylabel('inches')
     
     for i in range(len(measurement_data)):
-        plt.plot(measurement_data[i][0], measurement_data[i][1], 'k.')
+        plt.plot(measurement_data[i][0], measurement_data[i][1], 'ko')
 
     plt.gca().legend(loc='best')
     week_ticks(measurement_data, label_type)
@@ -692,8 +759,6 @@ if __name__ == '__main__':
     data_length = parse_lengths(lines_lengths, month_dates)
     data_head = parse_head(head_filename)
     
-    
-    
     plot_sleep(data_sleep, n_days_sleep)
     plot_sleep_24(data_sleep_24)
     plot_feeding(data_feeding)
@@ -701,5 +766,6 @@ if __name__ == '__main__':
     plot_percentiles('weight', gender, data_weight, n_months)
     plot_percentiles('length', gender, data_length, n_months)
     plot_percentiles('head', gender, data_head, n_months)
+    plot_percentiles_weight_vs_length(gender, data_weight, data_length, data_length[-2][1])
 
     plt.show()
