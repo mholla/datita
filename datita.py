@@ -432,11 +432,21 @@ def plot_sleep_24(data_sleep_24):
             total_sleep_24.append(data_sleep_24[i][2]/60.)
 
     plt.figure()
-    plt.title('Daily sleep')
+    plt.suptitle('Daily sleep')
+    gridspec.GridSpec(3,3)
+
+    plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
     week_ticks(data_sleep_24, label_type)
-    plt.ylim([0, 24.])
+    plt.ylim([10, 20.])
     plt.ylabel('hours')
     plt.plot(sleep_dates, total_sleep_24, 'k.')
+
+    plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
+    plt.ylim([10, 20.])
+    weights = numpy.ones_like(total_sleep_24)/len(total_sleep_24)*100.
+    plt.hist(total_sleep_24, bins=numpy.arange(9.50, 21.50, 1), weights=weights, histtype='stepfilled', color='k', orientation='horizontal')
+    plt.yticks([])
+
     plt.savefig('sleep_total.png')
 
 
