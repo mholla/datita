@@ -62,7 +62,6 @@ def read_percentiles(percentile_type, gender, n_months):
     f = open('percentiles_{type}_{gender}.txt'.format(type=percentile_type, gender=gender), 'r')
     lines = f.readlines()
 
-
     if percentile_type == 'weight-length':
         all_lengths = numpy.zeros(len(lines))
         max_length = math.ceil(n_months) + 1
@@ -316,7 +315,11 @@ def plot_sleep(data_sleep, n_days_sleep):
     for i in range(len(data_sleep)):
         start_time = parse_time(data_sleep[i][0])
         color = colormap(norm((data_sleep[i][0] - data_sleep[0][0]).days))
-        plt.plot(start_time, data_sleep[i][1], color=color, marker='.', markersize=8)
+        if (data_sleep[-1][0] - data_sleep[i][0]).days < 8:
+            alpha = 1
+        else: 
+            alpha = 0.25
+        plt.plot(start_time, data_sleep[i][1], color=color, marker='o', alpha=alpha)
 
     plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
     plt.ylim([0, 488])
@@ -386,7 +389,11 @@ def plot_sleep(data_sleep, n_days_sleep):
     for i in range(len(data_wake)):
         time = parse_time(data_wake[i][0].time())
         color = colormap(norm((data_wake[i][0] - max_sleep[0][0]).days))
-        plt.plot(time, data_wake[i][1], 'o', color=color)
+        if (data_wake[-1][0] - data_wake[i][0]).days < 8:
+            alpha = 1
+        else: 
+            alpha = 0.25
+        plt.plot(time, data_wake[i][1], 'o', color=color, alpha=alpha)
         wakes.append(data_wake[i][1])
 
     plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
@@ -487,7 +494,11 @@ def plot_feeding(data_feeding):
 
         color = colormap(norm((feeding_dates[i] - data_feeding[0][0].date()).days))
         if i < len(feeding_dates) - 1:
-            plt.plot(x, y, linestyle='-', color=color)
+            if i > len(feeding_dates) - 8: 
+                alpha = 1.
+            else: 
+                alpha = 0.3
+            plt.plot(x, y, linestyle='-', color=color, alpha=alpha)
 
     plt.plot([0, 24], [0, 24], '--', color='white')
     plt.savefig('feeding_over_time.png')
@@ -515,17 +526,18 @@ def plot_feeding(data_feeding):
     week_ticks(data_feeding, label_type)
     time_ticks('y')
     
-    size = [2, 4, 6, 8, 10, 12]
-    color = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
-    label = ['1oz', '2oz', '3oz', '4oz', '5oz', '6+oz']
+    size = [2, 3, 5, 6, 7, 8, 10, 12]
+    color = [0.0, 0.1, 0.2, 0.35, 0.5, 0.7, 0.9, 1.0]
+    label = ['1oz', '2oz', '3oz', '4oz', '5oz', '6oz', '7oz', '8+oz']
 
     for i in range(len(feeding_time)): 
         x = feeding_time[i].date()
         y = parse_time(feeding_time[i])
         z = int(math.ceil(feeding_amount[i]))
-        if z > 6: 
-            z = 6
-        plt.plot(x, y, marker='o', markerfacecolor=colormap(color[z-1]), markeredgecolor=colormap(color[z-1]), markersize=size[z-1])
+        if z > len(size): 
+            z = len(size)
+        if z > 0:
+            plt.plot(x, y, marker='o', markerfacecolor=colormap(color[z-1]), markeredgecolor=colormap(color[z-1]), markersize=size[z-1])
     
     handles = size_color_legend(size, color, label)
     plt.gca().legend(handles=handles, loc='lower left')    
@@ -538,7 +550,12 @@ def plot_feeding(data_feeding):
     for i in range(1, len(feeding_time)):
         interval = (feeding_time[i] - feeding_time[i-1]).seconds/3600.
         color = colormap(norm((feeding_time[i].date() - birthdate).days))
-        plt.plot(interval, feeding_amount[i], color=color, marker='.', markersize=8)
+        if (feeding_time[-1] - feeding_time[i]).days < 8:
+            alpha = 1
+        else: 
+            alpha = 0.25
+        plt.plot(interval, feeding_amount[i], color=color, marker='o', alpha=alpha)
+
     plt.plot([0, 6], [0, 6], 'k--')
     plt.gca().set_xlim([0, 8])
     plt.xlabel('hours')
