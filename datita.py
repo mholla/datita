@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 
 global birthdate, last_date, all_dates, n_days, n_days_sleep
-global morning, night
+global morning, night, label_type
 
 def parse_date(date_string):
     # convert Hatch's time and date strings to datetime objects
@@ -218,15 +218,28 @@ def parse_dirty_diapers(lines_diapers):
     return data_diapers
 
 
-def week_ticks(data):
+def week_ticks(data, label_type):
     
     week_ticks = [data[0][0].date()]
-    week_tick_labels = ['{month:d}/{day:d}'.format(month=week_ticks[0].month, day=week_ticks[0].day)]
+    if label_type == 'date':
+        week_tick_labels = ['{month:d}/{day:d}'.format(month=week_ticks[0].month, day=week_ticks[0].day)]
+    elif label_type == 'week':
+        week_tick_labels = [0]
     for i in range(100):
         if week_ticks[-1] + timedelta(weeks=1) < data[-1][0].date():
             new_date = week_ticks[-1] + timedelta(weeks=1)
             week_ticks.append(new_date)
-            week_tick_labels.append('{month:d}/{day:d}'.format(month=new_date.month, day=new_date.day))
+            if label_type == 'date':
+                week_tick_labels.append('{month:d}/{day:d}'.format(month=new_date.month, day=new_date.day))
+            elif label_type == 'week':
+                week_tick_labels.append(i+1)
+    new_date = week_ticks[-1] + timedelta(weeks=1)
+    week_ticks.append(new_date)
+    if label_type == 'date':
+        week_tick_labels.append('{month:d}/{day:d}'.format(month=new_date.month, day=new_date.day))
+    elif label_type == 'week':
+        week_tick_labels.append(week_tick_labels[-1]+1)
+        plt.xlabel('weeks of age')
 
     plt.gca().tick_params(axis = 'x', which = 'major', labelsize = 8)
     plt.xticks(week_ticks, rotation=45)
@@ -364,7 +377,7 @@ def plot_sleep_24(data_sleep_24):
     # sleep schedule with day and night distinguished
     plt.figure()
     plt.title('Sleep schedule')
-    week_ticks(data_sleep_24)
+    week_ticks(data_sleep_24, label_type)
     time_ticks('y')
     for i in range(len(data_sleep_24)): # 
         x = data_sleep_24[i][0].date()
@@ -387,7 +400,7 @@ def plot_sleep_24(data_sleep_24):
 
     plt.figure()
     plt.title('Daily sleep')
-    week_ticks(data_sleep_24)
+    week_ticks(data_sleep_24, label_type)
     plt.ylim([0, 24.])
     plt.ylabel('hours')
     plt.plot(sleep_dates, total_sleep_24, 'k.')
@@ -458,13 +471,13 @@ def plot_feeding(data_feeding):
     plt.title('Feeding totals')
     plt.ylim([0, 30.])
     plt.ylabel('ounces')
-    week_ticks(data_feeding)
+    week_ticks(data_feeding, label_type)
     plt.plot(feeding_dates, feeding_totals, 'k.')
     plt.savefig('feeding_totals.png')
 
     plt.figure()
     plt.title('Intake as a percentage of weight')
-    week_ticks(data_feeding)
+    week_ticks(data_feeding, label_type)
     plt.plot([feeding_dates[0], feeding_dates[-1]], [16, 16], 'k--')
     for i in range(len(feeding_dates)):
         plt.plot(feeding_dates[i], feeding_totals[i]/data_weight[i][1]/16.*100., 'k.')
@@ -473,7 +486,7 @@ def plot_feeding(data_feeding):
     # amount per feeding
     plt.figure()
     plt.title('Amount per feeding')
-    week_ticks(data_feeding)
+    week_ticks(data_feeding, label_type)
     time_ticks('y')
     
     size = [2, 4, 6, 8, 10, 12]
@@ -540,7 +553,7 @@ def plot_feeding(data_feeding):
     
     plt.gca().legend(handles=handles, loc='lower left')    
     plt.ylim([0, 0.3])
-    week_ticks(data_feeding)
+    week_ticks(data_feeding, label_type)
     plt.savefig('feeding_time_of_day.png')
 
 
@@ -560,7 +573,7 @@ def plot_diapers(data_diapers):
     
     plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
     time_ticks('y')
-    week_ticks(data_diapers)
+    week_ticks(data_diapers, label_type)
     for i in range(len(data_diapers)):
             for j in range(len(data_diapers[i][1])):
                 plt.plot(data_diapers[i][0], data_diapers[i][1][j], 'ko')
@@ -579,7 +592,7 @@ def plot_diapers(data_diapers):
     gridspec.GridSpec(3,3)
 
     plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
-    week_ticks(data_diapers)
+    week_ticks(data_diapers, label_type)
     plt.ylim([-0.5, 5.5])
     plt.plot(all_dates, n_dirty, 'ko')
 
@@ -633,7 +646,7 @@ def plot_percentiles(measurement, gender, measurement_data, n_months):
         plt.plot(measurement_data[i][0], measurement_data[i][1], 'k.')
 
     plt.gca().legend(loc='best')
-    week_ticks(measurement_data)
+    week_ticks(measurement_data, label_type)
     plt.savefig('{measurement}.png'.format(measurement=measurement))
 
 
@@ -655,6 +668,7 @@ if __name__ == '__main__':
     colormap = plt.get_cmap('viridis').reversed()  
     morning = 8
     night = 20
+    label_type = 'week'
 
     [lines_sleeps, lines_feedings, lines_diapers, lines_weights, lines_lengths] = read_data(Hatch_filename)
     
