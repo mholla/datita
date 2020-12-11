@@ -61,7 +61,7 @@ def read_percentiles(percentile_type, gender, n_months):
 
     f = open('percentiles_{type}_{gender}.txt'.format(type=percentile_type, gender=gender), 'r')
     lines = f.readlines()
-
+    
     if percentile_type == 'weight-length':
         all_lengths = numpy.zeros(len(lines))
         max_length = math.ceil(n_months) + 1
@@ -148,13 +148,17 @@ def parse_feedings(lines_feeding):
         
 
 def parse_weights(lines_weights, month_dates):
+    # I distinguish between "official weights" (from doctor visits)
+    # and weights we take at home (on the Hatch, always in clothes and a clean diaper)
 
     wdates_all = []
     weights_all = []
 
+    data_weight_official = []
+
     for i in range(len(lines_weights)):
         data = lines_weights[i].split(',')
-        wdates_all.append(parse_date(data[1]).date())
+        date = parse_date(data[1]).date()
         
         weight = data[4]
         lboz = weight.split(' ')
@@ -163,7 +167,13 @@ def parse_weights(lines_weights, month_dates):
             oz = 0.
         else:
             oz = float(lboz[1][:-2])
-        weights_all.append(lb + oz/16.)
+
+        if len(data[8]) > 1:
+            date = datetime.combine(date, time(0, 0))
+            data_weight_official.append([date, lb + oz/16.])
+        else: 
+            wdates_all.append(parse_date(data[1]).date())
+            weights_all.append(lb + oz/16.)
 
     # calculate one weight per day
     data_weight = [[] for i in range(len(all_dates)+1)] 
@@ -180,7 +190,7 @@ def parse_weights(lines_weights, month_dates):
             date = datetime.combine(all_dates[i], time(0, 0))
             data_weight[i] = [date, data_weight[i-1][1]]
 
-    return data_weight
+    return data_weight, data_weight_official
 
 
 def parse_lengths(lines_lengths, month_dates):
@@ -684,63 +694,60 @@ def plot_percentiles_weight_vs_length(gender, data_weight, data_length, n_months
     plt.gca().set_ylim(bottom=4)
     plt.xlabel('inches')
     plt.ylabel('pounds')
-
-    j = 0
     
-    for i in range(len(data_length)):
-        length_date = data_length[i][0]
-    
-        while data_weight[j][0] < length_date:
-            j = j + 1
-        matching_weight = data_weight[j][1]
-        plt.plot(data_length[i][1], data_weight[j][1], 'ko')
+    for i in range(len(data_length)-1):
+        plt.plot(data_length[i][1], data_weight[i][1], 'ko')
 
     plt.gca().legend(loc='best')
     plt.savefig('weight-length.png')
 
 
-def plot_percentiles(measurement, gender, measurement_data, n_months):
+def plot_percentiles(measurement, gender, measurement_data, n_months, official=True):
     
-    percentile_data = read_percentiles(measurement, gender, n_months)
-    percentiles = [2, 5, 10, 25, 50, 75, 90, 95, 98]
-    percentile_colors = numpy.arange(0.1, 1.0, 0.1)
+    plt.figure(measurement)
 
-    plt.figure()
+    if official: 
+        percentile_data = read_percentiles(measurement, gender, n_months)
+        percentiles = [2, 5, 10, 25, 50, 75, 90, 95, 98]
+        percentile_colors = numpy.arange(0.1, 1.0, 0.1)
 
-    for i in reversed(range(9)):
-        width = 2
-        if i in [1, 3, 4, 5, 7]:
-            label = '{percentile}%ile'.format(percentile=percentiles[i])
-            linestyle = '-'
-            alpha = 1
-        else:
-            label = None
-            linestyle = '--'
-            alpha = 0.2
-        plt.plot(month_dates, percentile_data[i], color=colormap(percentile_colors[i]), linestyle=linestyle, linewidth=width, label=label, alpha=alpha)
+        for i in reversed(range(9)):
+            width = 2
+            if i in [1, 3, 4, 5, 7]:
+                label = '{percentile}%ile'.format(percentile=percentiles[i])
+                linestyle = '-'
+                alpha = 1
+            else:
+                label = None
+                linestyle = '--'
+                alpha = 0.2
+            plt.plot(month_dates, percentile_data[i], color=colormap(percentile_colors[i]), linestyle=linestyle, linewidth=width, label=label, alpha=alpha)
 
-    if measurement == 'weight':
-        plt.title('Weight')
-        plt.plot([birthdate, last_date], [measurement_data[0][1], measurement_data[0][1] + 1.0/16.*n_days], 'k--', label='1oz per day')
-        size = 1
-        plt.gca().set_ylim(bottom=0)
-        plt.ylabel('pounds')
-    elif measurement == 'length':
-        plt.title('Length')
-        size = 10
-        plt.gca().set_ylim(bottom=16)
-        plt.ylabel('inches')
-    elif measurement == 'head':
-        plt.title('Head')
-        size = 10
-        plt.gca().set_ylim(bottom=12)
-        plt.ylabel('inches')
+        if measurement == 'weight':
+            plt.title('Weight')
+            plt.gca().set_ylim(bottom=0, top=percentile_data[8][-1])
+            plt.ylabel('pounds')
+        elif measurement == 'length':
+            plt.title('Length')
+            plt.gca().set_ylim(bottom=16)
+            plt.ylabel('inches')
+        elif measurement == 'head':
+            plt.title('Head')
+            plt.gca().set_ylim(bottom=12)
+            plt.ylabel('inches')
+    
+        week_ticks(measurement_data, label_type)
+        plt.gca().legend(loc='best')
+
+        markerstyle = 'o'
+        color = 'k'
+    else: 
+        markerstyle = '.'
+        color = 'silver'
     
     for i in range(len(measurement_data)):
-        plt.plot(measurement_data[i][0], measurement_data[i][1], 'ko')
-
-    plt.gca().legend(loc='best')
-    week_ticks(measurement_data, label_type)
+        plt.plot(measurement_data[i][0], measurement_data[i][1], markerstyle, color=color)
+    
     plt.savefig('{measurement}.png'.format(measurement=measurement))
 
 
@@ -782,7 +789,7 @@ if __name__ == '__main__':
     data_diapers = parse_dirty_diapers(lines_diapers)
 
     [n_months, month_dates] = define_months()
-    data_weight = parse_weights(lines_weights, month_dates)
+    [data_weight, data_weight_official] = parse_weights(lines_weights, month_dates)
     data_length = parse_lengths(lines_lengths, month_dates)
     data_head = parse_head(head_filename)
     
@@ -790,9 +797,10 @@ if __name__ == '__main__':
     plot_sleep_24(data_sleep_24)
     plot_feeding(data_feeding)
     plot_diapers(data_diapers)
-    plot_percentiles('weight', gender, data_weight, n_months)
+    plot_percentiles('weight', gender, data_weight, n_months, official=False)
+    plot_percentiles('weight', gender, data_weight_official, n_months)
     plot_percentiles('length', gender, data_length, n_months)
     plot_percentiles('head', gender, data_head, n_months)
-    plot_percentiles_weight_vs_length(gender, data_weight, data_length, data_length[-2][1])
+    plot_percentiles_weight_vs_length(gender, data_weight_official, data_length, data_length[-2][1])
 
     plt.show()
