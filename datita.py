@@ -358,7 +358,7 @@ def plot_sleep(data_sleep, n_days_sleep):
             if data_sleep[i][1] > max_sleep[-1][1]:
                 max_sleep[-1] = [data_sleep[i][0], data_sleep[i][1]]
         else: 
-            max_sleep.append([max_sleep[-1][0] + timedelta(days=1), data_sleep[i][1]])
+            max_sleep.append(data_sleep[i])
 
     plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
     time_ticks('x')
@@ -455,12 +455,12 @@ def plot_sleep_24(data_sleep_24):
 
     plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
     week_ticks(data_sleep_24, label_type)
-    plt.ylim([10, 20.])
+    plt.ylim([10., 18.])
     plt.ylabel('hours')
     plt.plot(sleep_dates, total_sleep_24, 'k.')
 
     plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
-    plt.ylim([10, 20.])
+    plt.ylim([10., 18.])
     weights = numpy.ones_like(total_sleep_24)/len(total_sleep_24)*100.
     plt.hist(total_sleep_24, bins=numpy.arange(9.50, 21.50, 1), weights=weights, histtype='stepfilled', color='k', orientation='horizontal')
     plt.yticks([])
@@ -544,6 +544,7 @@ def plot_feeding(data_feeding):
     plt.title('Intake as a percentage of weight')
     week_ticks(data_feeding, label_type)
     plt.plot([feeding_dates[0], feeding_dates[-1]], [16, 16], 'k--')
+    plt.plot([feeding_dates[0], feeding_dates[-1]], [12.5, 12.5], 'k--')
     for i in range(len(feeding_dates)):
         plt.plot(feeding_dates[i], feeding_totals[i]/data_weight[i][1]/16.*100., 'k.')
     plt.savefig('feeding_percentage.png')
@@ -702,7 +703,7 @@ def plot_percentiles_weight_vs_length(gender, data_weight, data_length, n_months
     plt.gca().set_ylim(bottom=4)
     plt.xlabel('inches')
     plt.ylabel('pounds')
-    
+
     for i in range(len(data_length)-1):
         plt.plot(data_length[i][1], data_weight[i][1], 'ko')
 
