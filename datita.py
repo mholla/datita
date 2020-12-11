@@ -255,11 +255,19 @@ def parse_dirty_diapers(lines_diapers):
 
 def week_ticks(data, label_type):
     
-    week_ticks = [data[0][0].date()]
+    # determine starting week
+    starting_week = 0
+    for i in range(100):
+        if birthdate + timedelta(weeks=i) <= data[0][0].date():
+            starting_week = i
+
+    week_ticks = [birthdate + timedelta(weeks=starting_week)]
     if label_type == 'date':
         week_tick_labels = ['{month:d}/{day:d}'.format(month=week_ticks[0].month, day=week_ticks[0].day)]
     elif label_type == 'week':
-        week_tick_labels = [0]
+
+        week_tick_labels = [starting_week]
+    
     for i in range(100):
         if week_ticks[-1] + timedelta(weeks=1) < data[-1][0].date():
             new_date = week_ticks[-1] + timedelta(weeks=1)
@@ -267,7 +275,7 @@ def week_ticks(data, label_type):
             if label_type == 'date':
                 week_tick_labels.append('{month:d}/{day:d}'.format(month=new_date.month, day=new_date.day))
             elif label_type == 'week':
-                week_tick_labels.append(i+1)
+                week_tick_labels.append(starting_week + i + 1)
     new_date = week_ticks[-1] + timedelta(weeks=1)
     week_ticks.append(new_date)
     if label_type == 'date':
@@ -280,7 +288,7 @@ def week_ticks(data, label_type):
     plt.xticks(week_ticks, rotation=45)
     plt.gca().set_xticklabels(week_tick_labels)
     plt.gca().set_xlim([week_ticks[0], week_ticks[-1]])
-   
+
 
 def time_ticks(axis):
     time_ticks = [0, 4, 8, 12, 16, 20, 24]
@@ -615,7 +623,7 @@ def plot_feeding(data_feeding):
         plt.plot(bin_dates, bin_avgs, 'o--', color=colormap(colors[k]))
     
     plt.gca().legend(handles=handles, loc='lower left')    
-    plt.ylim([0, 0.3])
+    plt.ylim([0, 0.4])
     week_ticks(data_feeding, label_type)
     plt.savefig('feeding_time_of_day.png')
 
