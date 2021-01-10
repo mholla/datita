@@ -289,6 +289,8 @@ def week_ticks(data, label_type):
     plt.gca().set_xticklabels(week_tick_labels)
     plt.gca().set_xlim([week_ticks[0], week_ticks[-1]])
 
+    return week_ticks, week_tick_labels
+
 
 def time_ticks(axis):
     time_ticks = [0, 4, 8, 12, 16, 20, 24]
@@ -428,14 +430,33 @@ def plot_sleep_24(data_sleep_24):
     # sleep schedule with day and night distinguished
     plt.figure()
     plt.title('Sleep schedule')
-    week_ticks(data_sleep_24, label_type)
+    [week_dates, week_names] = week_ticks(data_sleep_24, 'week')
     time_ticks('y')
-    for i in range(len(data_sleep_24)): # 
+    for i in range(len(data_sleep_24)):
         x = data_sleep_24[i][0].date()
         y1 = parse_time(data_sleep_24[i][0])
         y2 = parse_time(data_sleep_24[i][1])
         plt.plot([x, x], [y1, y2], 'k-', linewidth=4)
     plt.savefig('sleep_schedule.png')
+
+
+    # heat map of sleep schedule by week
+    plt.figure()
+    plt.title('Sleep schedule')
+    time_ticks('y')
+    plt.xlabel('weeks')
+
+    j = 0
+    for i in range(len(data_sleep_24)):
+        date = data_sleep_24[i][0].date()
+        if date >= week_dates[j+1]:
+            j = j + 1
+        x = j
+        y1 = parse_time(data_sleep_24[i][0])
+        y2 = parse_time(data_sleep_24[i][1])
+        plt.plot([x, x], [y1, y2], 'k-', linewidth=20, alpha=0.2)
+
+    plt.savefig('sleep_schedule_heat.png')
 
 
     # total sleep in 24 hours
@@ -534,7 +555,7 @@ def plot_feeding(data_feeding):
     # feeding totals
     plt.figure()
     plt.title('Feeding totals')
-    plt.ylim([0, 30.])
+    plt.ylim([0, 40.])
     plt.ylabel('ounces')
     week_ticks(data_feeding, label_type)
     plt.plot(feeding_dates, feeding_totals, 'k.')
