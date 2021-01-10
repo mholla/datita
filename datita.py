@@ -781,6 +781,31 @@ def plot_percentiles(measurement, gender, measurement_data, n_months, official=T
     plt.savefig('{measurement}.png'.format(measurement=measurement))
 
 
+def plot_proportionality(data_length, data_head, data_weight):
+
+    plt.figure()
+    plt.title('Head circumference as a fraction of length')
+    week_ticks(data_head, label_type=label_type)
+
+    plt.plot([data_head[0][0], data_head[-1][0]], [0.3, 0.3], 'k--')
+
+    for i in range(len(data_length)-1):
+        plt.plot(data_head[i][0], data_head[i][1]/data_length[i][1], 'ko')
+
+    plt.savefig('head-length.png')
+
+    plt.figure()
+    plt.title('BMI')
+    week_ticks(data_weight, label_type=label_type)
+
+    for i in range(len(data_weight)-1):
+        kg = data_weight[i][1]*0.453592
+        m = data_length[i][1]*2.54/100.
+        plt.plot(data_weight[i][0], kg/m**2., 'ko')
+
+    plt.savefig('BMI.png')
+
+
 def size_color_legend(size, color, label):
     
     handles = []
@@ -832,5 +857,6 @@ if __name__ == '__main__':
     plot_percentiles('length', gender, data_length, n_months)
     plot_percentiles('head', gender, data_head, n_months)
     plot_percentiles_weight_vs_length(gender, data_weight_official, data_length, data_length[-2][1])
+    plot_proportionality(data_length, data_head, data_weight_official)
 
     plt.show()
