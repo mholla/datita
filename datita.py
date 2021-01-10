@@ -261,7 +261,7 @@ def write_date_tick_labels(date_tick_labels, the_datetime, week=None, month=None
         date_tick_labels.append(week)
     elif label_type == 'month':
         date_tick_labels.append(month)
-        
+
     return date_tick_labels
 
 
@@ -288,14 +288,14 @@ def date_ticks(data, label_type):
 
     date_tick_labels = []
     date_tick_labels = write_date_tick_labels(date_tick_labels, date_ticks[0], week=starting_week, month=starting_month)
- 
+
     for i in range(100):
         if date_ticks[-1] + unit_increment <= data[-1][0].date():
             new_date = date_ticks[-1] + unit_increment
             date_ticks.append(new_date)
 
             date_tick_labels = write_date_tick_labels(date_tick_labels, new_date, week = starting_week + i + 1, month = starting_month + i + 1)
-            
+
     new_date = date_ticks[-1] + unit_increment
     date_ticks.append(new_date)
     date_tick_labels = write_date_tick_labels(date_tick_labels, new_date, week = date_tick_labels[-1] + 1, month = date_tick_labels[-1] + 1)
@@ -383,28 +383,35 @@ def plot_sleep(data_sleep, n_days_sleep):
         else: 
             max_sleep.append(data_sleep[i])
 
-    plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
+    plt.subplot2grid((4,4), (1,0), colspan=3, rowspan=3)
     time_ticks('x')
     plt.ylabel('hours')
     plt.yticks([0., 60., 120., 180., 240., 300., 360., 420., 480.])
     plt.gca().set_yticklabels([0, 1, 2, 3, 4, 5, 6, 7, 8])
     plt.ylim([0, 488])
     durations = []
+    times = []
     for i in range(len(max_sleep)):
         date = max_sleep[i][0]
         time = parse_time(max_sleep[i][0].time())
         duration = max_sleep[i][1]
+        times.append(time)
         durations.append(duration)
         color = colormap(norm((date - max_sleep[0][0]).days))
         plt.plot(time, duration, 'o', color=color)
 
-
-    plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
+    plt.subplot2grid((4,4), (1,3), colspan=1, rowspan=3)
     plt.ylim([0, 480.])
     plt.yticks([0., 60., 120., 180., 240., 300., 360., 420., 480.])
     plt.gca().set_yticklabels([])
     weights = numpy.ones_like(durations)/len(durations)*100.
     plt.hist(durations, bins=numpy.arange(-15., 495., 30), weights=weights, histtype='stepfilled', color='k', orientation='horizontal')
+
+    plt.subplot2grid((4,4), (0,0), colspan=3, rowspan=1)
+    weights = numpy.ones_like(times)/len(times)*100.
+    plt.hist(times, bins=numpy.arange(-0.5, 24.5, 1.), weights=weights, histtype='stepfilled', color='k')
+    time_ticks('x')
+    plt.gca().set_xticklabels([])
 
     plt.savefig('sleep_max.png')
 
