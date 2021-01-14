@@ -298,7 +298,7 @@ def date_ticks(data, label_type):
 
     new_date = date_ticks[-1] + unit_increment
     date_ticks.append(new_date)
-    date_tick_labels = write_date_tick_labels(date_tick_labels, new_date, week = date_tick_labels[-1] + 1, month = date_tick_labels[-1] + 1)
+    date_tick_labels = write_date_tick_labels(date_tick_labels, new_date, week = '', month = '')
 
     if label_type == 'week':
         plt.xlabel('weeks of age')
@@ -615,7 +615,7 @@ def plot_feeding(data_feeding):
         if z > len(size): 
             z = len(size)
         if z > 0:
-            plt.plot(x, y, marker='o', markerfacecolor=colormap(color[z-1]), markeredgecolor=colormap(color[z-1]), markersize=size[z-1])
+            plt.plot(x, y, marker='o', color=colormap(color[z-1]), markersize=size[z-1])
     
     handles = size_color_legend(size, color, label)
     plt.gca().legend(handles=handles, loc='lower left')    
@@ -838,7 +838,7 @@ def size_color_legend(size, color, label):
     
     handles = []
     for i in range(len(size)):
-        handles.append(matplotlib.lines.Line2D([], [], marker='o', markersize=size[i], label=label[i], markerfacecolor=colormap(color[i]), markeredgecolor=colormap(color[i]), linestyle='None'))
+        handles.append(matplotlib.lines.Line2D([], [], marker='o', markersize=size[i], label=label[i], color=colormap(color[i]), linestyle='None'))
     
     return handles
 
