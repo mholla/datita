@@ -453,20 +453,173 @@ def plot_sleep(data_sleep, n_days_sleep):
 
     plt.savefig('sleep_wake.png')
 
+    # bedtimes and waketimes
+    plt.figure()
+    [bedtimes, waketimes] = bed_wake_times(data_sleep, data_wake)
 
-def plot_sleep_24(data_sleep_24):
+    plt.subplot2grid((3,3), (0,0), colspan=2, rowspan=3)
+    times_bed = []
+    times_wake = []
+    for i in range(len(bedtimes)):
+        times_bed.append(bedtimes[i][1])
+        times_wake.append(waketimes[i][1])
+        plt.plot(bedtimes[i][0], bedtimes[i][1], 'o', color=colormap(1.0))
+        plt.plot(waketimes[i][0], waketimes[i][1], 'o', color=colormap(0.5))
+    date_ticks(data_sleep, label_type)
+    time_ticks('y')
+
+    plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
+    plt.ylim([0, 24.])
+    time_ticks('y')
+    plt.gca().set_yticklabels([])
+    weights = numpy.ones_like(times_bed)/len(times_bed)*100.
+    plt.hist(times_bed, bins=numpy.arange(0., 24., 0.5), weights=weights, histtype='stepfilled', color=colormap(1.0), orientation='horizontal')
+    weights = numpy.ones_like(times_wake)/len(times_wake)*100.
+    plt.hist(times_wake, bins=numpy.arange(0., 24., 0.5), weights=weights, histtype='stepfilled', color=colormap(0.5), orientation='horizontal', alpha=0.5)
+
+    plt.savefig('sleep_bed_wake_times.png')
+
+    # correlation between bedtime and wakeup time 
+    plt.figure()
+    for i in range(len(bedtimes)-1):
+        recency = (bedtimes[i][0] - bedtimes[0][0]).days
+        alpha = 1.0
+        if recency < len(bedtimes)-7:
+            alpha = 0.5
+        color = colormap(norm(recency))
+        plt.plot(bedtimes[i][1], waketimes[i+1][1], 'o', color=color, alpha=alpha)
+    
+    plt.axis([18., 24., 6., 10.])
+    plt.xlabel('bedtime')
+    plt.ylabel('waketime')
+    plt.savefig('sleep_bed_wake_correlation')
+    return bedtimes, waketimes
+
+
+def determine_bedtime(bedtimes, current_date_sleep):
+
+    bedtime_index = -1
+    
+    # look for first sleep after bedtime; default is midnight
+    for j in range(1,len(current_date_sleep)+1):
+        if current_date_sleep[-j][0] > night:
+            bedtime_index = -j
+
+    # check for long wake period following (or if sleep is less than 1.5 hours?)
+    if bedtime_index < -1:
+        wake_period_after = current_date_sleep[bedtime_index+1][0] - current_date_sleep[bedtime_index][1]
+        if wake_period_after > 0.5:
+            bedtime_index = bedtime_index + 1
+
+    # check for short wake period before 
+    wake_period_before = current_date_sleep[bedtime_index][0] - current_date_sleep[bedtime_index-1][1] 
+    if wake_period_before < 1.:
+        bedtime_index = bedtime_index - 1
+
+    # check if bedtime was really midnight or later (set to midnight)
+    last_wakeup = current_date_sleep[-1][1]
+    if last_wakeup < 23:
+        bedtimes[-1][1] = 24.
+    else:
+        bedtimes[-1][1] = current_date_sleep[bedtime_index][0]
+
+    return bedtimes
+
+
+def determine_waketime(waketimes, current_date_wake):
+    # only problem is 10/20, when there were two short wakeups
+
+    # look for first wakeup after one hour before the day starts
+    for j in range(1,len(current_date_wake)+1):
+        if current_date_wake[-j][0] > morning-1.5:
+            waketime_index = len(current_date_wake)-j
+
+    # check for short wake period following 
+    wake_period_after = current_date_wake[waketime_index][1] - current_date_wake[waketime_index][0]
+    if wake_period_after < 0.8:
+        waketime_index = waketime_index + 1
+
+    # check for long wake period before
+    if waketime_index > 0:
+        wake_period_before = current_date_wake[waketime_index-1][1] - current_date_wake[waketime_index-1][0] 
+        if wake_period_before > 1.5 and current_date_wake[waketime_index-1][0] > 4.:
+            waketime_index = waketime_index - 1
+
+    waketimes[-1][1] = current_date_wake[waketime_index][0]
+
+    return waketimes
+
+
+def bed_wake_times(data_sleep, data_wake):
+    # bedtime
+    bedtimes = [[data_sleep[0][0].date(), 24.0]]
+    current_date_sleep = []
+
+    for i in range(len(data_sleep)):
+
+        sleep_time = parse_time(data_sleep[i][0])
+        wake_time = sleep_time + data_sleep[i][1]/60.
+        if data_sleep[i][0].date() == bedtimes[-1][0]:
+            # gather all of a day's sleep 
+            current_date_sleep.append([sleep_time, wake_time])
+            
+        else: # at the end of the day
+            bedtimes = determine_bedtime(bedtimes, current_date_sleep)
+            # plt.plot(bedtimes[-1][0], bedtimes[-1][1], 'o', color=colormap(1.0))
+
+            # set up next day
+            bedtimes.append([data_sleep[i][0].date(), 24.0])
+            current_date_sleep = [[sleep_time, wake_time]]
+
+    # waketime
+    waketimes = [[data_wake[0][0].date(), 0.0]]
+    current_date_wake = []
+
+    for i in range(len(data_wake)):
+
+        wake_time = parse_time(data_wake[i][0])
+        sleep_time = wake_time + data_wake[i][1]/60.
+        if data_wake[i][0].date() == waketimes[-1][0]:
+            # gather all of a day's wakeups 
+            current_date_wake.append([wake_time, sleep_time])
+            
+        else: # at the end of the day
+            waketimes = determine_waketime(waketimes, current_date_wake)
+            # plt.plot(waketimes[-1][0], waketimes[-1][1], 'o', color=colormap(0.5))
+
+            # set up next day
+            waketimes.append([data_wake[i][0].date(), 24.0])
+            current_date_wake = [[wake_time, sleep_time]]
+
+    return bedtimes, waketimes
+
+
+def plot_sleep_24(data_sleep_24, bedtimes, waketimes):
     # sleep schedule with day and night distinguished
     plt.figure()
     plt.title('Sleep schedule')
     [week_dates, week_names] = date_ticks(data_sleep_24, 'week')
     time_ticks('y')
-    for i in range(len(data_sleep_24)):
-        x = data_sleep_24[i][0].date()
-        y1 = parse_time(data_sleep_24[i][0])
-        y2 = parse_time(data_sleep_24[i][1])
-        plt.plot([x, x], [y1, y2], 'k-', linewidth=4)
-    plt.savefig('sleep_schedule.png')
 
+    day_index = 0
+    for i in range(1, len(data_sleep_24)):
+        day = data_sleep_24[i][0].date()
+        if day != data_sleep_24[i-1][0].date():
+            day_index = day_index + 1
+        sleep_time = parse_time(data_sleep_24[i][0])
+        wake_time = parse_time(data_sleep_24[i][1])
+
+        if sleep_time >= bedtimes[day_index][1] or wake_time <= waketimes[day_index][1] + 0.1:
+            color = colormap(1.0)
+        else:
+            color = colormap(0.4)
+
+        plt.plot([day, day], [sleep_time, wake_time], '-', linewidth=4, color=color)
+        day = day + timedelta(days=-1)
+        plt.plot([day, day], [sleep_time+24, wake_time+24], '-', linewidth=4, color=color)
+
+    plt.gca().set_ylim([0, 36])
+    plt.savefig('sleep_schedule.png')
 
     # heat map of sleep schedule by week
     plt.figure()
@@ -876,8 +1029,8 @@ if __name__ == '__main__':
     data_length = parse_lengths(lines_lengths, month_dates)
     data_head = parse_head(head_filename)
     
-    plot_sleep(data_sleep, n_days_sleep)
-    plot_sleep_24(data_sleep_24)
+    [bedtimes, waketimes] = plot_sleep(data_sleep, n_days_sleep)
+    plot_sleep_24(data_sleep_24, bedtimes, waketimes)
     plot_feeding(data_feeding)
     plot_diapers(data_diapers)
     plot_percentiles('weight', gender, data_weight, n_months, official=False)
