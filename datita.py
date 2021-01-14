@@ -225,6 +225,7 @@ def parse_head(head_file):
 def parse_dirty_diapers(lines_diapers):
 
     dirty_date = []
+    caught = []
 
     for i in range(len(lines_diapers)):
         data = lines_diapers[i].split(',')
@@ -232,20 +233,24 @@ def parse_dirty_diapers(lines_diapers):
         diaper_type = data[7]
 
         if diaper_type in ['Both', 'Dirty']:
-            diaper_type = True
             dirty_date.append(diaper_date)
+            if 'Caught' in data[8]: 
+                caught.append(True)
+            else: 
+                caught.append(False)
     
     # separate diapers by day
     data_diapers = []
     for i in range(n_days+1):
         new_date = datetime.combine(birthdate + timedelta(days=i), time(0,0))
-        data_diapers.append([new_date, []])
+        data_diapers.append([new_date, [], []])
 
     j = 0 # index of original data
     k = 0 # index of date
     while j < len(dirty_date):
         if dirty_date[j].date() == data_diapers[k][0].date():
             data_diapers[k][1].append(parse_time(dirty_date[j].time()))
+            data_diapers[k][2].append(caught[j])
             j = j + 1
         else: 
             k = k + 1
@@ -595,7 +600,7 @@ def bed_wake_times(data_sleep, data_wake):
 
 
 def plot_sleep_24(data_sleep_24, bedtimes, waketimes):
-    # sleep schedule with day and night distinguished
+    # sleep schedule with bedtimes and waketimes
     plt.figure()
     plt.title('Sleep schedule')
     [week_dates, week_names] = date_ticks(data_sleep_24, 'week')
@@ -775,25 +780,6 @@ def plot_feeding(data_feeding):
     plt.savefig('feeding_amount_per.png')
 
 
-    plt.figure()
-    plt.title('Feeding amount vs. interval')
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=n_days)
-    for i in range(1, len(feeding_time)):
-        interval = (feeding_time[i] - feeding_time[i-1]).seconds/3600.
-        color = colormap(norm((feeding_time[i].date() - birthdate).days))
-        if (feeding_time[-1] - feeding_time[i]).days < 8:
-            alpha = 1
-        else: 
-            alpha = 0.25
-        plt.plot(interval, feeding_amount[i], color=color, marker='o', alpha=alpha)
-
-    plt.plot([0, 6], [0, 6], 'k--')
-    plt.gca().set_xlim([0, 8])
-    plt.xlabel('hours')
-    plt.ylabel('ounces')
-    plt.savefig('feeding_amount_interval.png')
-
-
     # group feedings by time of day
     plt.figure()
     plt.title('Feeding by time of day')
@@ -834,11 +820,13 @@ def plot_feeding(data_feeding):
 def plot_diapers(data_diapers):
     diaper_times = []
     diaper_dates = []
+    diaper_caught = []
     n_dirty = []
 
     for i in range(len(data_diapers)):
         diaper_dates.append(data_diapers[i][0])
         diaper_times = diaper_times + data_diapers[i][1]
+        diaper_caught = diaper_caught + data_diapers[i][2]
         n_dirty.append(len(data_diapers[i][1]))
 
     plt.figure()
@@ -850,7 +838,16 @@ def plot_diapers(data_diapers):
     date_ticks(data_diapers, label_type)
     for i in range(len(data_diapers)):
             for j in range(len(data_diapers[i][1])):
-                plt.plot(data_diapers[i][0], data_diapers[i][1][j], 'ko')
+                if data_diapers[i][2][j]: 
+                    color = colormap(0.5)
+                else: 
+                    color = 'k'
+                plt.plot(data_diapers[i][0], data_diapers[i][1][j], 'o', color=color)
+
+    handles = []
+    handles.append(matplotlib.lines.Line2D([], [], marker='o', markersize=6, label='misses', color='k', linestyle='None'))
+    handles.append(matplotlib.lines.Line2D([], [], marker='o', markersize=6, label='catches', color=colormap(0.5), linestyle='None'))
+    plt.gca().legend(handles=handles, loc='lower right')    
 
     plt.subplot2grid((3,3), (0,2), colspan=1, rowspan=3)
     plt.ylim([0, 24])
@@ -1005,7 +1002,7 @@ if __name__ == '__main__':
     colormap = plt.get_cmap('viridis').reversed()  
     morning = 8
     night = 20
-    label_type = 'month'
+    label_type = 'month' # week, week-date, month, month-name
 
     [lines_sleeps, lines_feedings, lines_diapers, lines_weights, lines_lengths] = read_data(Hatch_filename)
     
